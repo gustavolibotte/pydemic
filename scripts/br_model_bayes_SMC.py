@@ -46,6 +46,9 @@ from scipy.stats import gaussian_kde  # to calculate MPV from KDE
 from scipy.integrate import solve_ivp  # to solve ODE system
 from tqdm import tqdm, trange
 
+from proj_consts import ProjectConsts
+from get_url_brazilian_ministry import run_url_catcher
+
 seed = 12345  # for the sake of reproducibility :)
 np.random.seed(seed)
 
@@ -56,7 +59,7 @@ THEANO_FLAGS = "optimizer=fast_compile"  # A theano trick
 Numba.enable_numba()  # speed-up arviz plots
 
 # DATA_PATH = os.environ["DATA_DIR"]
-DATA_PATH = "../pydemic/data/"
+DATA_PATH = "../pydemic/data"
 
 # %% [markdown]
 # <a id="loading"></a>
@@ -71,16 +74,17 @@ rj_state_population = float(17264943) # gathered from IBGE 2019
 ce_state_population = float(9132078)  # gathered from IBGE 2019
 
 target_population = brazil_population
-target_population
 
 # %%
 df_brazil_states_cases = pd.read_csv(
-    f"{DATA_PATH}/covid19br/cases-brazil-states.csv",
+    ProjectConsts.casesBrazilStatesURL,
     usecols=["date", "state", "totalCases", "deaths", "recovered"],
     parse_dates=["date"],
 )
 df_brazil_states_cases.fillna(value={"recovered": 0}, inplace=True)
 df_brazil_states_cases = df_brazil_states_cases[df_brazil_states_cases.state != "TOTAL"]
+
+print(df_brazil_states_cases)
 
 
 # %%
@@ -110,20 +114,45 @@ df_ce_state_cases = get_brazil_state_dataframe(df_brazil_states_cases, state_nam
 # Initial Conditions:
 
 # %%
-df_brazil_cases_by_day = pd.read_csv(f"{DATA_PATH}/brazil_by_day.csv", parse_dates=["date"])
+# df_brazil_cases_by_day = pd.read_csv(f"{DATA_PATH}/brazil_by_day.csv", parse_dates=["date"])
+
+url_data_brazil_ministry = run_url_catcher()
+df_brazil_cases_by_day = pd.read_excel(url_data_brazil_ministry,
+                                        usecols=["regiao", "data", "casosAcumulado", "obitosAcumulado", "Recuperadosnovos", "emAcompanhamentoNovos"],
+                                        parse_dates=["data"],)
+df_brazil_cases_by_day = df_brazil_cases_by_day[df_brazil_cases_by_day["regiao"]=="Brasil"]
+df_brazil_cases_by_day = df_brazil_cases_by_day.drop(columns=["regiao"])
+df_brazil_cases_by_day = df_brazil_cases_by_day.rename(columns={"data": "date", "casosAcumulado": "confirmed", "obitosAcumulado": "deaths", "Recuperadosnovos": "recovered", "emAcompanhamentoNovos": "active"})
+df_brazil_cases_by_day = df_brazil_cases_by_day.fillna(value={"recovered": 0, "active": 0})
 df_brazil_cases_by_day = df_brazil_cases_by_day[df_brazil_cases_by_day.confirmed > 5]
 df_brazil_cases_by_day = df_brazil_cases_by_day.reset_index(drop=True)
 df_brazil_cases_by_day["day"] = df_brazil_cases_by_day.date.apply(
-    lambda x: (x - df_brazil_cases_by_day.date.min()).days
+    lambda x: (x - df_brazil_cases_by_day.date.min()).days + 1
 )
+df_brazil_cases_by_day = df_brazil_cases_by_day[["date", "day", "confirmed", "deaths", "recovered", "active"]]
+df_brazil_cases_by_day.to_csv("../pydemic/data/brazil_by_day.csv", index=False)
+print(df_brazil_cases_by_day)
 
 # %%
-df_rio_cases_by_day = pd.read_csv(f"{DATA_PATH}/rio_covid19.csv")
-df_rio_cases_by_day["active"] = (
-    df_rio_cases_by_day["cases"] - df_rio_cases_by_day["deaths"] - df_rio_cases_by_day["recoveries"]
+# df_rio_cases_by_day = pd.read_csv(f"{DATA_PATH}/rio_covid19.csv")
+
+df_rio_cases_by_day = pd.read_csv(
+    ProjectConsts.casesBrazilStatesURL,
+    usecols=["date", "state", "city", "totalCases", "deaths", "recovered"],
+    parse_dates=["date"],
 )
-rio_columns_rename = {"cases": "confirmed", "recoveries": "recovered"}
-df_rio_cases_by_day.rename(columns=rio_columns_rename, inplace=True)
+df_rio_cases_by_day = df_rio_cases_by_day[df_rio_cases_by_day["state"]=="RJ"]
+df_rio_cases_by_day = df_rio_cases_by_day[df_rio_cases_by_day["city"]=="TOTAL"]
+df_rio_cases_by_day = df_rio_cases_by_day.fillna(value={"recovered": 0})
+df_rio_cases_by_day = df_rio_cases_by_day.reset_index(drop=True)
+df_rio_cases_by_day["day"] = df_rio_cases_by_day.date.apply(
+    lambda x: (x - df_rio_cases_by_day.date.min()).days + 1
+)
+df_rio_cases_by_day = df_rio_cases_by_day.drop(columns=["date", "state", "city"])
+df_rio_cases_by_day = df_rio_cases_by_day.rename(columns={"totalCases": "cases", "recovered": "recoveries"})
+df_rio_cases_by_day = df_rio_cases_by_day[["day", "cases", "deaths", "recoveries"]]
+df_rio_cases_by_day.to_csv("../pydemic/data/rio_covid19.csv", index=False)
+print(df_rio_cases_by_day)
 
 # %%
 df_target_country = df_brazil_cases_by_day
