@@ -14,9 +14,11 @@ from helium import S, click, kill_browser, start_chrome, wait_until
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
 
+from proj_consts import ProjectConsts
+
 opts = webdriver.ChromeOptions()
 opts.set_capability("loggingPrefs", {"performance": "ALL"})
-driver = start_chrome("https://covid.saude.gov.br/", options=opts)
+driver = start_chrome(ProjectConsts.BRAZIL_HEALTH_MINISTRY_URL, options=opts)
 wait_until(S("ion-button").exists)
 sleep(3)
 click("Arquivo CSV")
