@@ -83,3 +83,65 @@ class MetaSEIR:
         dSEIR = dS, dE, dI, dR
         dSEIR = np.reshape(dSEIR, (nCompart * self.nPatches))
         return dSEIR
+
+    """
+    Getters for all attributes
+    """
+    @property
+    def nPatches(self):
+        return self.__nPatches
+    
+    @property
+    def beta(self):
+        return self.__beta
+    
+    @property
+    def C(self):
+        return self.__C
+    
+    @property
+    def mu(self):
+        return self.__mu
+    
+    @property
+    def sigma(self):
+        return self.__sigma
+    
+    @property
+    def gamma(self):
+        return self.__gamma
+    
+    @property
+    def M(self):
+        return self.__M
+
+    """
+    Setters for all attributes
+    """
+    @nPatches.setter
+    def nPatches(self, nPatches):
+        self.__nPatches = nPatches
+    
+    @beta.setter
+    def beta(self, beta):
+        self.__beta = beta
+        
+    @C.setter
+    def C(self, C):
+        self.__C = C
+        
+    @mu.setter
+    def mu(self, mu):
+        self.__mu = mu
+        
+    @sigma.setter
+    def sigma(self, sigma):
+        self.__sigma = sigma
+        
+    @gamma.setter
+    def gamma(self, gamma):
+        self.__gamma = gamma
+        
+    @M.setter
+    def M(self, M):
+        self.__M = M
